@@ -20,7 +20,7 @@ Hacked from Ettus UHD RX ASCII Art DFT code for SoapySDR. Adapted from [retrogra
 ![retrogram-rtlsdr-gsm](https://imgur.com/REhEnv2.jpg)
 [Spotting FCCH (Freq. Correction) burst in the local GSM BCCH (Broadcast Control Channel) @ 938.2 MHz]
 
-Pan & Zoom spectrum using keyboard controls [decrement-Increment]. [Full feature demo](https://www.youtube.com/watch?v=JnrknBrvYjw)
+Pan & Zoom spectrum using keyboard controls [decrement-Increment]. [[Full feature demo based on retrogram-plutosdr](https://www.youtube.com/watch?v=JnrknBrvYjw)]
 
 * Center Frequency using keys [f-F] 
 * Sampling rate    using keys [r-R]
