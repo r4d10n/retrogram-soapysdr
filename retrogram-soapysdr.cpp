@@ -1,5 +1,14 @@
 /*
 
+          _                                      /\/|____                         _________________ 
+         | |                                    |/\/  ___|                       /  ___|  _  \ ___ \
+ _ __ ___| |_ _ __ ___   __ _ _ __ __ _ _ __ ___   \ `--.  ___   __ _ _ __  _   _\ `--.| | | | |_/ /
+| '__/ _ \ __| '__/ _ \ / _` | '__/ _` | '_ ` _ \   `--. \/ _ \ / _` | '_ \| | | |`--. \ | | |    / 
+| | |  __/ |_| | | (_) | (_| | | | (_| | | | | | | /\__/ / (_) | (_| | |_) | |_| /\__/ / |/ /| |\ \ 
+|_|  \___|\__|_|  \___/ \__, |_|  \__,_|_| |_| |_| \____/ \___/ \__,_| .__/ \__, \____/|___/ \_| \_|
+                         __/ |                                       | |     __/ |                  
+                        |___/                                        |_|    |___/                   
+
 Wideband Spectrum analyzer on your terminal/ssh console with ASCII art. 
 Hacked from Ettus UHD RX ASCII Art DFT code - adapted for SoapySDR.
 
@@ -47,8 +56,10 @@ int main(int argc, char *argv[]){
     int num_bins = 512;
     double rate, freq, step, frame_rate;
     float ref_lvl, dyn_rng;
-  
+    bool show_controls; 
+
     int ch;
+    bool loop = true;   
 
     //setup the program options
     po::options_description desc("\nAllowed options");
@@ -64,6 +75,7 @@ int main(int argc, char *argv[]){
         ("ref-lvl", po::value<float>(&ref_lvl)->default_value(0), "reference level for the display (dB) [l-L]")
         ("dyn-rng", po::value<float>(&dyn_rng)->default_value(80), "dynamic range for the display (dB) [d-D]")
         ("step", po::value<double>(&step)->default_value(1e5), "tuning step for rate/bw/freq [t-T]")
+        ("show-controls", po::value<bool>(&show_controls)->default_value(true), "show the keyboard controls")
     ;
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -163,7 +175,7 @@ int main(int argc, char *argv[]){
     //------------------------------------------------------------------
     //-- Main loop
     //------------------------------------------------------------------
-    while (true) 
+    while (loop) 
     {
         
         buff.clear();
@@ -171,7 +183,7 @@ int main(int argc, char *argv[]){
         SoapySDRDevice_readStream(sdr, rxStream, buffs, samples_per_buffer, &flags, &timeNs, 100000);
             
         // TODO: Check sample buffer
-	/*if (n_read < samples_per_buffer) 
+    	/*if (n_read < samples_per_buffer) 
         {
                 fprintf(stderr, "Short read, samples lost, exiting - %d:%d!\n", n_read, samples_per_buffer);
                 break;
@@ -198,7 +210,7 @@ int main(int argc, char *argv[]){
             ascii_art_dft::log_pwr_dft(&buff.front(), buff.size())
         );
         std::string frame = ascii_art_dft::dft_to_plot(
-            lpdft, COLS, LINES-5,
+            lpdft, COLS, (show_controls ? LINES-5 : LINES),
             rate, 
             freq, 
             dyn_rng, ref_lvl
@@ -209,79 +221,92 @@ int main(int argc, char *argv[]){
     
         //curses screen handling: clear and print frame
         clear();        
-        printw("-%s-={ retrogram~soapysdr }=-%s",header.c_str(),header.c_str());
-        printw("[f-F]req: %4.3f MHz   |   [r-R]ate: %2.2f Msps\n\n", freq/1e6, rate/1e6);
-        printw("[d-D]yn Range: %2.0f dB    |   Ref [l-L]evel: %2.0f dB   |   fp[s-S] : %2.0f   |   [t-T]uning step: %3.3f M\n", dyn_rng, ref_lvl, frame_rate, step/1e6);
-        printw("%s", border.c_str());
+        if (show_controls)
+        {
+            printw("-%s-={ retrogram~soapysdr }=-%s",header.c_str(),header.c_str());
+            printw("[f-F]req: %4.3f MHz   |   [r-R]ate: %2.2f Msps\n\n", freq/1e6, rate/1e6);
+            printw("[d-D]yn Range: %2.0f dB    |   Ref [l-L]evel: %2.0f dB   |   fp[s-S] : %2.0f   |   [t-T]uning step: %3.3f M\n", dyn_rng, ref_lvl, frame_rate, step/1e6);
+            printw("%s", border.c_str());
+        }        
         printw("%s\n", frame.c_str());
 
         //curses key handling: no timeout, any key to exit. TODO: Proper bounds check and limit
         timeout(0);
         ch = getch();
 
-        if (ch == 'r') 	
+        switch(ch)
         {
-            if ((rate - step) > 0) 
+            case 'r':
             {
-                rate -= step;                
-                if (SoapySDRDevice_setSampleRate(sdr, SOAPY_SDR_RX, 0, rate) != 0)
+                if ((rate - step) > 0) 
                 {
-                    std::cout << boost::format("setSampleRate fail: %s") % (SoapySDRDevice_lastError()) << std::endl;
+                    rate -= step;                
+                    if (SoapySDRDevice_setSampleRate(sdr, SOAPY_SDR_RX, 0, rate) != 0)
+                    {
+                        std::cout << boost::format("setSampleRate fail: %s") % (SoapySDRDevice_lastError()) << std::endl;
+                        exiterr(0);
+                    }
+                    
+                }
+                break;
+            }
+
+            case 'R':
+            {
+                    rate += step;
+                    if (SoapySDRDevice_setSampleRate(sdr, SOAPY_SDR_RX, 0, rate) != 0)
+                    {
+                        std::cout << boost::format("setSampleRate fail: %s") % (SoapySDRDevice_lastError()) << std::endl;
+                        exiterr(0);                
+                    }
+                    break;
+            }
+
+            case 'f':
+            {
+                freq -= step;
+                if (SoapySDRDevice_setFrequency(sdr, SOAPY_SDR_RX, 0, freq, NULL) != 0)
+                {
+                    std::cout << boost::format("setFrequency fail: %s") % (SoapySDRDevice_lastError()) << std::endl;
                     exiterr(0);
                 }
-                
+                break;
             }
-            
-        }
 
-        else if (ch == 'R')
-        {
-                rate += step;
-                if (SoapySDRDevice_setSampleRate(sdr, SOAPY_SDR_RX, 0, rate) != 0)
+            case 'F':
+            {
+                freq += step;
+                if (SoapySDRDevice_setFrequency(sdr, SOAPY_SDR_RX, 0, freq, NULL) != 0)
                 {
-                    std::cout << boost::format("setSampleRate fail: %s") % (SoapySDRDevice_lastError()) << std::endl;
-                    exiterr(0);                
-	        }
-        }
-
-        else if (ch == 'f')
-        {
-            freq -= step;
-            if (SoapySDRDevice_setFrequency(sdr, SOAPY_SDR_RX, 0, freq, NULL) != 0)
-            {
-                std::cout << boost::format("setFrequency fail: %s") % (SoapySDRDevice_lastError()) << std::endl;
-                exiterr(0);
+                    std::cout << boost::format("setFrequency fail: %s") % (SoapySDRDevice_lastError()) << std::endl;
+                    exiterr(0);
+                }    
+                break;
             }
 
-        }
+            case 'l': { ref_lvl -= 10; break; }            
+            case 'L': { ref_lvl += 10; break; }
+            case 'd': { dyn_rng -= 10; break; }
+            case 'D': { dyn_rng += 10; break; }
+            case 's': { if (frame_rate > 1) frame_rate -= 1; break;}
+            case 'S': { frame_rate += 1; break; }
+            case 't': { if (step > 1) step /= 2; break; }
+            case 'T': { step *= 2; break; }
+            case 'c': { show_controls = false; break; }
+            case 'C': { show_controls = true; break; }
 
-        else if (ch == 'F')
-        {
-            freq += step;
-            if (SoapySDRDevice_setFrequency(sdr, SOAPY_SDR_RX, 0, freq, NULL) != 0)
-            {
-                std::cout << boost::format("setFrequency fail: %s") % (SoapySDRDevice_lastError()) << std::endl;
-                exiterr(0);
-            }    
-        }
+            case 'q':
+            case 'Q': { loop = false; break; }
 
-        else if (ch == 'l') ref_lvl -= 10;
-        else if (ch == 'L') ref_lvl += 10;
-        else if (ch == 'd') dyn_rng -= 10;
-        else if (ch == 'D') dyn_rng += 10;
-        else if (ch == 's') { if (frame_rate > 1) frame_rate -= 1; }
-        else if (ch == 'S') frame_rate += 1;
-        else if (ch == 't') { if (step > 1) step /= 2; }
-        else if (ch == 'T') step *= 2;
- 
-        else if (ch == '\033')    // '\033' '[' 'A'/'B'/'C'/'D' -- Up / Down / Right / Left Press 
+        }
+        
+        if (ch == '\033')    // '\033' '[' 'A'/'B'/'C'/'D' -- Up / Down / Right / Left Press 
         {
             getch();
             switch(getch())
             {
 		        case 'A':
                 case 'C':
-
                     freq += step;
                     
                     if (SoapySDRDevice_setFrequency(sdr, SOAPY_SDR_RX, 0, freq, NULL) != 0)
@@ -289,8 +314,7 @@ int main(int argc, char *argv[]){
                         std::cout << boost::format("setFrequency fail: %s") % (SoapySDRDevice_lastError()) << std::endl;
                         exiterr(0);
                     }
-
-                
+        
                     break;
 
 		        case 'B':
@@ -303,15 +327,9 @@ int main(int argc, char *argv[]){
                         exiterr(0);
                     }
 
-                        
                     break;
             }
-        }
-        
-        else if (ch != KEY_RESIZE and ch != ERR) 
-        {
-            break;
-        }
+        }        
     }
 
     //------------------------------------------------------------------
