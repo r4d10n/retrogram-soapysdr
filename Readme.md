@@ -22,17 +22,32 @@ Hacked from Ettus UHD RX ASCII Art DFT code for SoapySDR. Adapted from [retrogra
 
 Pan & Zoom spectrum using keyboard controls [decrement-Increment]. [[Full feature demo based on retrogram-plutosdr](https://www.youtube.com/watch?v=JnrknBrvYjw)]
 
-* Center Frequency using keys [f-F] 
-* Sampling rate    using keys [r-R]
-* Reference level  using keys [l-L] 
-* Dynamic Range    using keys [d-D]
-* Frame rate       using keys [s-S]
-* Tuning step	   using keys [t-T]
+* Center Frequency 	using keys [f-F] 
+* Sampling rate    	using keys [r-R]
+* Bandwidth 	   	using keys [b-B]
+* Reference level  	using keys [l-L] 
+* Dynamic Range    	using keys [d-D]
+* Frame rate  		using keys [s-S]
+* Tuning step	   	using keys [t-T]
+* Hide/Show controls	using keys [c-C]
+* Quit program		using keys [q-Q]
 
 Tuning step applies for decrementing / Incrementing Center Frequency and Sampling Rate.
 
 ---
+	retrogram~soapysdr - ASCII Art Spectrum Analysis for SoapySDR
 
+	Allowed options:
+	  --help                   help message
+	  --dev arg (=0)           soapysdr device index
+	  --rate arg (=1000000)    rate of incoming samples (sps) [r-R]
+	  --freq arg (=100000000)  RF center frequency in Hz [f-F]
+	  --frame-rate arg (=15)   frame rate of the display (fps) [s-S]
+	  --ref-lvl arg (=0)       reference level for the display (dB) [l-L]
+	  --dyn-rng arg (=80)      dynamic range for the display (dB) [d-D]
+	  --step arg (=100000)     tuning step for rate/bw/freq [t-T]
+	  --show-controls arg (=1) show the keyboard controls
+---
 ## Requires: libsoapysdr, libcurses, libboost-program-options
 	
 	sudo apt install libsoapysdr-dev libncurses5-dev libboost-program-options-dev
