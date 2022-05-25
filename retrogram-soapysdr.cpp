@@ -140,8 +140,17 @@ int main(int argc, char *argv[]){
 
     //setup a stream (complex floats)
     SoapySDRStream *rxStream;
+    int ret = 0;
+	
+    #if SOAPY_SDR_API_VERSION >= 0x00080000		// API version 0.8
+	#undef SoapySDRDevice_setupStream
+	rxStream = SoapySDRDevice_setupStream(sdr, SOAPY_SDR_RX, SOAPY_SDR_CS16, NULL, 0, NULL);
+	ret = (rxStream == NULL);
+    #else // API version 0.7 
+	ret = SoapySDRDevice_setupStream(sdr, &rxStream, SOAPY_SDR_RX, SOAPY_SDR_CS16, NULL, 0, NULL);
+    #endif
 
-    if ((rxStream = SoapySDRDevice_setupStream(sdr, SOAPY_SDR_RX, SOAPY_SDR_CS16, NULL, 0, NULL)) != 0)
+    if (ret != 0)
     {
         std::cout << boost::format("setupStream fail: %s") % (SoapySDRDevice_lastError()) << std::endl;
         exiterr(0);
