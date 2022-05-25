@@ -33,6 +33,7 @@ Peak Hold feature by henrikssn [https://github.com/henrikssn]
 #include <chrono>
 #include <thread>
 
+#include <SoapySDR/Version.h>
 #include <SoapySDR/Device.h>
 #include <SoapySDR/Formats.h>
 
